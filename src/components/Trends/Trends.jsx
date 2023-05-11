@@ -2,6 +2,10 @@ import { useState } from "react";
 import "./Trends.css";
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import React from "react";
+import loading from './../../assets/loading.gif'
+import waiter from "../../utils/waiter";
+
 
 function getGenreNameFromId(id) {
   const genres = {
@@ -47,7 +51,8 @@ const Trends = () => {
       } catch (error) {
         console.error(error);
       }
-      resolve(data);
+      await waiter(1000);
+      resolve(data.results);
     });
   };
 
@@ -56,51 +61,91 @@ const Trends = () => {
   useEffect(() => {
     (async () => {
       const newData = await getData();
+      console.log("Je fetch de la bonne data");
       setData(newData);
     })();
   }, []);
 
+  const SortSelector = () => {
+    const handleChange = async () => {
+      const selector = document.querySelector(".sort-selector");
+      const value = selector.value;
+      let newData;
+
+      if (value === "1") {
+        newData = [...data].sort((a, b) => a.vote_average - b.vote_average);
+      } else if (value === "2") {
+        newData = [...data].sort((a, b) => b.vote_average - a.vote_average);
+      } else if (value === "0"){
+        console.log("Hello world :)");
+      }
+
+      setData(newData);
+    };
+
+    return (
+      <div className="sort-container">
+        <span>Trier par :</span>
+        <select name="sort" className="sort-selector" onChange={handleChange}>
+          <option value="0">-------</option>
+          <option value="1">Notes croissantes</option>
+          <option value="2">Notes décroissantes</option>
+        </select>
+      </div>
+    );
+  };
+
   return (
-    <div className="trends">
-      {(() => {
-        if (!data) {
-          return (
-            <div className="loading">
-              <img src="/assets/Rolling-1s-200px.gif" alt="" />
-            </div>
-          );
-        } else {
-          return data.results.map((movie, index) => {
+    <>
+      <SortSelector />
+      <div className="trends">
+        {(() => {
+          if (!data) {
             return (
-              <div key={index} className="movie-card">
-                <Link to={`/details/${encodeURI(movie.title)}`} state={{"movieData": movie}}>
-                  <div
-                    className="movie-image-container"
-                    style={{
-                      backgroundImage: `url(https://image.tmdb.org/t/p/w500/${movie.poster_path})`,
-                    }}
-                  ></div>
-                  <div className="movie-bottom">
-                    <span className="movie-title">{movie.title}</span>
-                    <div className="movie-genres">
-                      {movie.genre_ids.map((genreId, index) => {
-                        return <span key={genreId}>{getGenreNameFromId(genreId)}</span>;
-                      })}
-                    </div>
-                    <div className="movie-rate-year">
-                      <span className="movie-rate">
-                        {Math.round(movie.vote_average * 10) / 10}/10
-                      </span>
-                      <span className="movie-year">{movie.release_date}</span>
-                    </div>
-                  </div>
-                </Link>
+              <div className="loading">
+                <img src={loading} alt="" />
               </div>
             );
-          });
-        }
-      })()}
-    </div>
+          } else {
+            return data.map((movie, index) => {
+              return (
+                <div key={movie.title} className="movie-card">
+                  <Link
+                    to={`/details/${encodeURI(movie.title)}`}
+                    state={{ movieData: movie }}
+                  >
+                    <div
+                      className="movie-image-container"
+                      style={{
+                        backgroundImage: `url(https://image.tmdb.org/t/p/w500/${movie.poster_path})`,
+                      }}
+                    ></div>
+                    <div className="movie-bottom">
+                      <span className="movie-title">{movie.title}</span>
+                      <div className="movie-genres">
+                        {movie.genre_ids.map((genreId, index) => {
+                          return (
+                            <span key={genreId}>
+                              {getGenreNameFromId(genreId)}
+                            </span>
+                          );
+                        })}
+                      </div>
+                      <div className="movie-rate-year">
+                        <span className="movie-rate">
+                          {Math.round(movie.vote_average * 10) / 10}/10
+                        </span>
+                        <span className="movie-year">{movie.release_date}</span>
+                      </div>
+                    </div>
+                  </Link>
+                </div>
+              );
+            });
+          }
+        })()}
+      </div>
+    </>
   );
 };
 
